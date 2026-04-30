@@ -1,43 +1,43 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>Deck · Multi-file Slide Index</title>
 <!--
-  deck_index.html — 多文件 slide deck 的拼接器
+  deck_index.html — Aggregator for a multi-file slide deck
 
-  配合「每页一个独立 HTML」架构使用。与单文件 deck_stage.js 对比：
-  · 每页独立作用域（CSS/JS 都隔离），一页出 bug 不影响其他页
-  · 单页可直接在浏览器打开验证，不依赖 JS goTo()
-  · 多 agent 可并行做不同页，merge 时零冲突
-  · 适合 ≥15 页的讲座/课件/长 deck
+  Pairs with the "one HTML per slide" architecture. Compared to single-file deck_stage.js:
+  · Each slide has independent scope (CSS/JS isolated); a bug on one page won't affect others
+  · A single page can be opened directly in the browser to verify, no JS goTo() needed
+  · Multiple agents can work on different pages in parallel; zero merge conflicts
+  · Best for lectures / courseware / long decks with 15+ pages
 
-  用法：
-    1. 把本文件复制到 deck 根目录，重命名 index.html
-    2. 在同目录建 slides/ 子目录，放每一页独立 HTML
-    3. 编辑下方 MANIFEST 数组，按顺序列出文件名和人类可读标签
-    4. 每张 slide HTML 建议尺寸 1920×1080，自带背景/字体；不要依赖外层 CSS
+  Usage:
+    1. Copy this file to the deck root and rename it index.html
+    2. Create a slides/ subdirectory and place each independent slide HTML there
+    3. Edit the MANIFEST array below, listing files in order with human-readable labels
+    4. Each slide HTML should target 1920×1080, with its own background/fonts; do not depend on outer CSS
 
-  共享资源（如果需要）：
-    · shared/tokens.css  — 跨页 CSS 变量（色板/字号）
-    · shared/chrome.html — 页眉页脚可复用片段
-    · 每页 HTML 自己 <link> 进去即可
+  Shared resources (if needed):
+    · shared/tokens.css  — cross-page CSS variables (palette/font sizes)
+    · shared/chrome.html — reusable header/footer fragments
+    · Each slide can <link> them in itself
 
-  键盘：← / → / Space / PgUp / PgDown / Home / End / 1-9 跳页 / P 打印
+  Keyboard: ← / → / Space / PgUp / PgDown / Home / End / 1-9 jump / P print
 -->
 
 <!-- ═══════════════════════════════════════════════════════ -->
-<!-- EDIT THIS — deck 所有页按顺序列出                        -->
+<!-- EDIT THIS — list every page in the deck, in order        -->
 <!-- ═══════════════════════════════════════════════════════ -->
 <script>
   window.DECK_MANIFEST = [
     { file: "slides/01-cover.html",       label: "Cover" },
     { file: "slides/02-quote.html",       label: "Opening Quote" },
     { file: "slides/03-intro.html",       label: "Self-intro" },
-    // 继续往下加。file 是相对本文件的路径，label 用于计数器
+    // Continue adding below. file is a path relative to this file; label is for the counter
   ];
 
-  // 固定 canvas 尺寸。每页 HTML 都应该按这个尺寸设计。
+  // Fixed canvas dimensions. Each slide HTML should be designed to these dimensions.
   window.DECK_WIDTH = 1920;
   window.DECK_HEIGHT = 1080;
 </script>

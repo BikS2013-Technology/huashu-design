@@ -1,28 +1,29 @@
 #!/usr/bin/env node
 /**
- * export_deck_pptx.mjs — 把多文件 slide deck 导出为可编辑 PPTX
+ * export_deck_pptx.mjs — Export a multi-file slide deck to an editable PPTX
  *
- * 用法：
+ * Usage:
  *   node export_deck_pptx.mjs --slides <dir> --out <file.pptx>
  *
- * 行为：
- *   - 调用 scripts/html2pptx.js 把 HTML DOM 逐元素翻译成 PowerPoint 原生对象
- *   - 文字是真文本框，PPT 里直接双击能编辑
- *   - body 尺寸 960pt × 540pt（LAYOUT_WIDE，13.333″ × 7.5″）
+ * Behavior:
+ *   - Calls scripts/html2pptx.js to translate the HTML DOM element-by-element into native PowerPoint objects
+ *   - Text is rendered as real text boxes — double-click to edit directly in PPT
+ *   - Body size is 960pt x 540pt (LAYOUT_WIDE, 13.333" x 7.5")
  *
- * ⚠️ HTML 必须符合 4 条硬约束（见 references/editable-pptx.md）：
- *   1. 文字包在 <p>/<h1>-<h6> 里（div 不能直接放文字）
- *   2. 不用 CSS 渐变
- *   3. <p>/<h*> 不能有 background/border/shadow（放外层 div）
- *   4. div 不能 background-image（用 <img>）
+ * WARNING: HTML must obey 4 hard constraints (see references/editable-pptx.md):
+ *   1. Text must be wrapped in <p>/<h1>-<h6> (a <div> cannot hold raw text directly)
+ *   2. No CSS gradients
+ *   3. <p>/<h*> cannot have background/border/shadow (apply them to an outer <div>)
+ *   4. <div> cannot use background-image (use an <img> instead)
  *
- * 视觉驱动的 HTML 几乎无法 pass —— 必须从写 HTML 的第一行就按约束写。
- * 视觉自由度优先的场景（动画、web component、CSS 渐变、复杂 SVG）
- * 应改用 export_deck_pdf.mjs / export_deck_stage_pdf.mjs 导出 PDF。
+ * Visually-driven HTML almost never passes — you must author HTML against
+ * these constraints from the very first line. For scenarios that prioritize
+ * visual freedom (animation, web components, CSS gradients, complex SVG),
+ * use export_deck_pdf.mjs / export_deck_stage_pdf.mjs to export PDF instead.
  *
- * 依赖：npm install playwright pptxgenjs sharp
+ * Dependencies: npm install playwright pptxgenjs sharp
  *
- * 按文件名排序（01-xxx.html → 02-xxx.html → ...）。
+ * Slides are merged in filename order (01-xxx.html -> 02-xxx.html -> ...).
  */
 
 import pptxgen from 'pptxgenjs';
@@ -40,10 +41,10 @@ function parseArgs() {
     args[k] = a[i + 1];
   }
   if (!args.slides || !args.out) {
-    console.error('用法: node export_deck_pptx.mjs --slides <dir> --out <file.pptx>');
+    console.error('Usage: node export_deck_pptx.mjs --slides <dir> --out <file.pptx>');
     console.error('');
-    console.error('⚠️ HTML 必须符合 4 条硬约束（见 references/editable-pptx.md）。');
-    console.error('   视觉自由度优先的场景请改用 export_deck_pdf.mjs 导出 PDF。');
+    console.error('WARNING: HTML must obey 4 hard constraints (see references/editable-pptx.md).');
+    console.error('   For scenarios that prioritize visual freedom, use export_deck_pdf.mjs to export PDF instead.');
     process.exit(1);
   }
   return args;
@@ -70,13 +71,13 @@ async function main() {
   try {
     html2pptx = require(path.join(__dirname, 'html2pptx.js'));
   } catch (e) {
-    console.error(`✗ 加载 html2pptx.js 失败：${e.message}`);
-    console.error(`  依赖缺失时请跑：npm install playwright pptxgenjs sharp`);
+    console.error(`✗ Failed to load html2pptx.js: ${e.message}`);
+    console.error(`  When dependencies are missing, run: npm install playwright pptxgenjs sharp`);
     process.exit(1);
   }
 
   const pres = new pptxgen();
-  pres.layout = 'LAYOUT_WIDE';  // 13.333 × 7.5 inch，对应 HTML body 960 × 540 pt
+  pres.layout = 'LAYOUT_WIDE';  // 13.333 x 7.5 inch, matches HTML body of 960 x 540 pt
 
   const errors = [];
   for (let i = 0; i < files.length; i++) {
@@ -92,16 +93,16 @@ async function main() {
   }
 
   if (errors.length) {
-    console.error(`\n⚠️ ${errors.length} 张 slide 转换失败。常见原因：HTML 不符合 4 条硬约束。`);
-    console.error(`  详见 references/editable-pptx.md 的「常见错误速查」。`);
+    console.error(`\nWARNING: ${errors.length} slide(s) failed to convert. Most common cause: HTML does not satisfy the 4 hard constraints.`);
+    console.error(`  See the "Common errors quick reference" section in references/editable-pptx.md.`);
     if (errors.length === files.length) {
-      console.error(`✗ 全部失败，不生成 PPTX。`);
+      console.error(`✗ All slides failed; not generating PPTX.`);
       process.exit(1);
     }
   }
 
   await pres.writeFile({ fileName: outFile });
-  console.log(`\n✓ Wrote ${outFile}  (${files.length - errors.length}/${files.length} slides, 可编辑 PPTX)`);
+  console.log(`\n✓ Wrote ${outFile}  (${files.length - errors.length}/${files.length} slides, editable PPTX)`);
 }
 
 main().catch(e => { console.error(e); process.exit(1); });

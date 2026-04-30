@@ -1,31 +1,31 @@
 #!/usr/bin/env node
 /**
- * export_deck_stage_pdf.mjs — 单文件 <deck-stage> 架构专用 PDF 导出
+ * export_deck_stage_pdf.mjs — Dedicated PDF exporter for the single-file <deck-stage> architecture
  *
- * 用法：
+ * Usage:
  *   node export_deck_stage_pdf.mjs --html <deck.html> --out <file.pdf> [--width 1920] [--height 1080]
  *
- * 什么时候用这个脚本？
- *   - 你的 deck 是**单 HTML 文件**，所有 slide 是 `<section>`，外层用 `<deck-stage>` 包裹
- *   - 此时 `export_deck_pdf.mjs`（多文件专用）用不上
+ * When should you use this script?
+ *   - Your deck is a **single HTML file** where every slide is a `<section>` wrapped inside `<deck-stage>`
+ *   - In that case, `export_deck_pdf.mjs` (which is multi-file only) does not apply
  *
- * 为什么不能直接 `page.pdf()`（2026-04-20 踩坑记录）：
- *   1. deck-stage 的 shadow CSS `::slotted(section) { display: none }` 让只有 active slide 可见
- *   2. print 媒体下外层 `!important` 压不住 shadow DOM 规则
- *   3. 结果：PDF 永远只有 1 页（active 那张）
+ * Why can't we just call `page.pdf()` directly (lessons learned 2026-04-20):
+ *   1. The deck-stage shadow CSS `::slotted(section) { display: none }` makes only the active slide visible
+ *   2. Under the print medium, even outer `!important` rules cannot override the shadow DOM
+ *   3. Result: the PDF always ends up with only 1 page (the active one)
  *
- * 解决方案：
- *   打开 HTML 后，用 page.evaluate 把所有 section 从 deck-stage slot 拔出来，
- *   挂到 body 下一个普通 div，内联 style 强制 position:relative + 固定尺寸，
- *   每个 section 加 page-break-after: always，最后一个改 auto 避免尾部空白页。
+ * Solution:
+ *   After loading the HTML, use page.evaluate to lift every <section> out of the deck-stage slot,
+ *   mount them under a plain <div> on body, and force inline styles for position:relative + fixed dimensions.
+ *   Each section gets page-break-after: always, and the last one is set to auto so we don't get a trailing blank page.
  *
- * 依赖：playwright
+ * Dependencies: playwright
  *   npm install playwright
  *
- * 输出特点：
- *   - 文字保留矢量（可复制、可搜索）
- *   - 视觉 1:1 保真
- *   - 字体必须能被 Chromium 加载（本地字体或 Google Fonts）
+ * Output characteristics:
+ *   - Text remains vector (selectable and searchable)
+ *   - Visuals are 1:1 faithful
+ *   - Fonts must be loadable by Chromium (local fonts or Google Fonts)
  */
 
 import { chromium } from 'playwright';
@@ -40,7 +40,7 @@ function parseArgs() {
     args[k] = a[i + 1];
   }
   if (!args.html || !args.out) {
-    console.error('用法: node export_deck_stage_pdf.mjs --html <deck.html> --out <file.pdf> [--width 1920] [--height 1080]');
+    console.error('Usage: node export_deck_stage_pdf.mjs --html <deck.html> --out <file.pdf> [--width 1920] [--height 1080]');
     process.exit(1);
   }
   args.width = parseInt(args.width);
@@ -65,16 +65,16 @@ async function main() {
   const page = await ctx.newPage();
 
   await page.goto('file://' + htmlAbs, { waitUntil: 'networkidle' });
-  await page.waitForTimeout(2500);  // 等 Google Fonts + deck-stage init
+  await page.waitForTimeout(2500);  // wait for Google Fonts + deck-stage init
 
-  // 核心修复：把 section 从 shadow DOM slot 拔出来摊平
+  // Core fix: pull each <section> out of the shadow DOM slot and flatten it
   const sectionCount = await page.evaluate(({ W, H }) => {
     const stage = document.querySelector('deck-stage');
-    if (!stage) throw new Error('<deck-stage> not found — 这个脚本只适用于单文件 deck-stage 架构');
+    if (!stage) throw new Error('<deck-stage> not found — this script only applies to the single-file deck-stage architecture');
     const sections = Array.from(stage.querySelectorAll(':scope > section'));
     if (!sections.length) throw new Error('No <section> found inside <deck-stage>');
 
-    // 注入打印样式
+    // Inject print styles
     const style = document.createElement('style');
     style.textContent = `
       @page { size: ${W}px ${H}px; margin: 0; }
@@ -83,11 +83,12 @@ async function main() {
     `;
     document.head.appendChild(style);
 
-    // 摊平到 body 下
+    // Flatten under body
     const container = document.createElement('div');
     container.id = 'print-container';
     sections.forEach(s => {
-      // 内联 style 拿到最高优先级；确保 position:relative 让 absolute 子元素正确约束
+      // Inline style takes top priority; ensures position:relative so absolutely
+      // positioned children are constrained correctly
       s.style.cssText = `
         width: ${W}px !important;
         height: ${H}px !important;
@@ -101,7 +102,7 @@ async function main() {
       `;
       container.appendChild(s);
     });
-    // 最后一页不分页，避免尾部空白页
+    // Don't break after the last page so we avoid a trailing blank page
     const last = sections[sections.length - 1];
     last.style.pageBreakAfter = 'auto';
     last.style.breakAfter = 'auto';
@@ -124,7 +125,7 @@ async function main() {
   const stat = await fs.stat(outFile);
   const kb = (stat.size / 1024).toFixed(0);
   console.log(`\n✓ Wrote ${outFile}  (${kb} KB, ${sectionCount} pages, vector)`);
-  console.log(`  验证页数：mdimport "${outFile}" && pdfinfo "${outFile}" | grep Pages`);
+  console.log(`  Verify page count: mdimport "${outFile}" && pdfinfo "${outFile}" | grep Pages`);
 }
 
 main().catch(e => { console.error(e); process.exit(1); });
